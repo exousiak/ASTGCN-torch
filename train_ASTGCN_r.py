@@ -10,13 +10,12 @@ import shutil
 import argparse
 import configparser
 from model.ASTGCN_r import make_model
-from lib.utils import load_graphdata_channel1, get_adjacency_matrix, compute_val_loss_mstgcn, predict_and_save_results_mstgcn
 from tensorboardX import SummaryWriter
+from lib.utils import load_graphdata_channel1, get_adjacency_matrix, compute_val_loss_mstgcn, predict_and_save_results_mstgcn
 from lib.metrics import masked_mape_np,  masked_mae,masked_mse,masked_rmse
 
-
 parser = argparse.ArgumentParser()
-parser.add_argument("--config", default='configurations/METR_LA_astgcn.conf', type=str,
+parser.add_argument("--config", default='configurations/PEMS04_astgcn.conf', type=str,
                     help="configuration file path")
 args = parser.parse_args()
 config = configparser.ConfigParser()
@@ -223,21 +222,6 @@ def predict_main(global_step, data_loader, data_target_tensor,metric_method, _me
 
 
 if __name__ == "__main__":
-
+    
     train_main()
-
-    # predict_main(13, test_loader, test_target_tensor,metric_method, _mean, _std, 'test')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    # predict_main(76, test_loader, test_target_tensor,metric_method, _mean, _std, 'test')

@@ -6,7 +6,10 @@ from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import mean_squared_error
 from .metrics import masked_mape_np
 from scipy.sparse.linalg import eigs
-from .metrics import masked_mape_np,  masked_mae,masked_mse,masked_rmse,masked_mae_test,masked_rmse_test
+from .metrics import masked_mape_np,  masked_mae,masked_mse,masked_rmse,masked_mae_test,masked_rmse_test, masked_wmape_np
+import matplotlib.pyplot as plt
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+from .metrics import masked_mape_np, masked_mae_test, masked_rmse_test, masked_wmape_np
 
 
 def re_normalization(x, mean, std):
@@ -169,7 +172,7 @@ def load_graphdata_channel1(graph_signal_matrix_filename, num_of_hours, num_of_d
 
     file_data = np.load(filename + '.npz')
     train_x = file_data['train_x']  # (10181, 307, 3, 12)
-    train_x = train_x[:, :, 0:1, :]
+    # train_x = train_x[:, :, 0:1, :]
     train_target = file_data['train_target']  # (10181, 307, 12)
 
     val_x = file_data['val_x']
@@ -307,88 +310,204 @@ def compute_val_loss_mstgcn(net, val_loader, criterion,  masked_flag,missing_val
 #                 sw.add_scalar('MAPE_%s_points' % (i), mape, epoch)
 
 
-def predict_and_save_results_mstgcn(net, data_loader, data_target_tensor, global_step, metric_method,_mean, _std, params_path, type):
-    '''
+# def predict_and_save_results_mstgcn(net, data_loader, data_target_tensor, global_step, metric_method,_mean, _std, params_path, type):
+#     '''
 
-    :param net: nn.Module
-    :param data_loader: torch.utils.data.utils.DataLoader
-    :param data_target_tensor: tensor
-    :param epoch: int
-    :param _mean: (1, 1, 3, 1)
-    :param _std: (1, 1, 3, 1)
-    :param params_path: the path for saving the results
-    :return:
-    '''
-    net.train(False)  # ensure dropout layers are in test mode
+#     :param net: nn.Module
+#     :param data_loader: torch.utils.data.utils.DataLoader
+#     :param data_target_tensor: tensor
+#     :param epoch: int
+#     :param _mean: (1, 1, 3, 1)
+#     :param _std: (1, 1, 3, 1)
+#     :param params_path: the path for saving the results
+#     :return:
+#     '''
+#     net.train(False)  # ensure dropout layers are in test mode
+
+#     with torch.no_grad():
+
+#         data_target_tensor = data_target_tensor.cpu().numpy()
+
+#         loader_length = len(data_loader)  # nb of batch
+
+#         prediction = []  # 存储所有batch的output
+
+#         input = []  # 存储所有batch的input
+
+#         for batch_index, batch_data in enumerate(data_loader):
+
+#             encoder_inputs, labels = batch_data
+
+#             input.append(encoder_inputs[:, :, 0:1].cpu().numpy())  # (batch, T', 1)
+
+#             outputs = net(encoder_inputs)
+
+#             prediction.append(outputs.detach().cpu().numpy())
+
+#             if batch_index % 100 == 0:
+#                 print('predicting data set batch %s / %s' % (batch_index + 1, loader_length))
+
+#         input = np.concatenate(input, 0)
+
+#         input = re_normalization(input, _mean, _std)
+
+#         prediction = np.concatenate(prediction, 0)  # (batch, T', 1)
+
+#         print('input:', input.shape)
+#         print('prediction:', prediction.shape)
+#         print('data_target_tensor:', data_target_tensor.shape)
+#         output_filename = os.path.join(params_path, 'output_epoch_%s_%s' % (global_step, type))
+#         np.savez(output_filename, input=input, prediction=prediction, data_target_tensor=data_target_tensor)
+
+#         # 计算误差
+#         excel_list = []
+#         prediction_length = prediction.shape[2]
+
+#         for i in range(prediction_length):
+#             assert data_target_tensor.shape[0] == prediction.shape[0]
+#             print('current epoch: %s, predict %s points' % (global_step, i))
+#             if metric_method == 'mask':
+#                 mae = masked_mae_test(data_target_tensor[:, :, i], prediction[:, :, i],0.0)
+#                 rmse = masked_rmse_test(data_target_tensor[:, :, i], prediction[:, :, i],0.0)
+#                 mape = masked_mape_np(data_target_tensor[:, :, i], prediction[:, :, i], 0)
+#                 wmape = masked_wmape_np(data_target_tensor[:, :, i], prediction[:, :, i], 0)
+#             else :
+#                 mae = mean_absolute_error(data_target_tensor[:, :, i], prediction[:, :, i])
+#                 rmse = mean_squared_error(data_target_tensor[:, :, i], prediction[:, :, i]) ** 0.5
+#                 mape = masked_mape_np(data_target_tensor[:, :, i], prediction[:, :, i], 0)
+#                 wmape = masked_wmape_np(data_target_tensor[:, :, i], prediction[:, :, i], 0)
+#             print('MAE: %.2f' % (mae))
+#             print('RMSE: %.2f' % (rmse))
+#             print('MAPE: %.2f' % (mape))
+#             print('WMAPE: %.2f' % (wmape))
+#             excel_list.extend([mae, rmse, mape,wmape])
+
+#         # print overall results
+#         if metric_method == 'mask':
+#             mae = masked_mae_test(data_target_tensor.reshape(-1, 1), prediction.reshape(-1, 1), 0.0)
+#             rmse = masked_rmse_test(data_target_tensor.reshape(-1, 1), prediction.reshape(-1, 1), 0.0)
+#             mape = masked_mape_np(data_target_tensor.reshape(-1, 1), prediction.reshape(-1, 1), 0)
+#         else :
+#             mae = mean_absolute_error(data_target_tensor.reshape(-1, 1), prediction.reshape(-1, 1))
+#             rmse = mean_squared_error(data_target_tensor.reshape(-1, 1), prediction.reshape(-1, 1)) ** 0.5
+#             mape = masked_mape_np(data_target_tensor.reshape(-1, 1), prediction.reshape(-1, 1), 0)
+#         print('all MAE: %.2f' % (mae))
+#         print('all RMSE: %.2f' % (rmse))
+#         print('all MAPE: %.2f' % (mape))
+#         print('all WMAPE: %.2f' % (wmape))
+#         excel_list.extend([mae, rmse, mape,wmape])
+#         print(excel_list)
+
+def predict_and_save_results_mstgcn(net, data_loader, data_target_tensor, global_step, metric_method, _mean, _std, params_path, type):
+    net.train(False)  # Ensure dropout layers are in test mode
 
     with torch.no_grad():
-
         data_target_tensor = data_target_tensor.cpu().numpy()
-
-        loader_length = len(data_loader)  # nb of batch
-
-        prediction = []  # 存储所有batch的output
-
-        input = []  # 存储所有batch的input
+        loader_length = len(data_loader)
+        prediction_list = []
+        input_list = []
 
         for batch_index, batch_data in enumerate(data_loader):
-
             encoder_inputs, labels = batch_data
-
-            input.append(encoder_inputs[:, :, 0:1].cpu().numpy())  # (batch, T', 1)
-
+            input_list.append(encoder_inputs[:, :, 0:1].cpu().numpy())
             outputs = net(encoder_inputs)
-
-            prediction.append(outputs.detach().cpu().numpy())
-
+            prediction_list.append(outputs.detach().cpu().numpy())
             if batch_index % 100 == 0:
-                print('predicting data set batch %s / %s' % (batch_index + 1, loader_length))
+                print('Predicting data set batch %s / %s' % (batch_index + 1, loader_length))
 
-        input = np.concatenate(input, 0)
+        input_all = np.concatenate(input_list, axis=0)
+        input_all = re_normalization(input_all, _mean, _std)
+        prediction = np.concatenate(prediction_list, axis=0)
 
-        input = re_normalization(input, _mean, _std)
-
-        prediction = np.concatenate(prediction, 0)  # (batch, T', 1)
-
-        print('input:', input.shape)
+        print('input:', input_all.shape)
         print('prediction:', prediction.shape)
         print('data_target_tensor:', data_target_tensor.shape)
-        output_filename = os.path.join(params_path, 'output_epoch_%s_%s' % (global_step, type))
-        np.savez(output_filename, input=input, prediction=prediction, data_target_tensor=data_target_tensor)
 
-        # 计算误差
-        excel_list = []
-        prediction_length = prediction.shape[2]
-
-        for i in range(prediction_length):
-            assert data_target_tensor.shape[0] == prediction.shape[0]
-            print('current epoch: %s, predict %s points' % (global_step, i))
-            if metric_method == 'mask':
-                mae = masked_mae_test(data_target_tensor[:, :, i], prediction[:, :, i],0.0)
-                rmse = masked_rmse_test(data_target_tensor[:, :, i], prediction[:, :, i],0.0)
-                mape = masked_mape_np(data_target_tensor[:, :, i], prediction[:, :, i], 0)
-            else :
-                mae = mean_absolute_error(data_target_tensor[:, :, i], prediction[:, :, i])
-                rmse = mean_squared_error(data_target_tensor[:, :, i], prediction[:, :, i]) ** 0.5
-                mape = masked_mape_np(data_target_tensor[:, :, i], prediction[:, :, i], 0)
-            print('MAE: %.2f' % (mae))
-            print('RMSE: %.2f' % (rmse))
-            print('MAPE: %.2f' % (mape))
-            excel_list.extend([mae, rmse, mape])
-
-        # print overall results
         if metric_method == 'mask':
             mae = masked_mae_test(data_target_tensor.reshape(-1, 1), prediction.reshape(-1, 1), 0.0)
             rmse = masked_rmse_test(data_target_tensor.reshape(-1, 1), prediction.reshape(-1, 1), 0.0)
-            mape = masked_mape_np(data_target_tensor.reshape(-1, 1), prediction.reshape(-1, 1), 0)
-        else :
+            wmape = masked_wmape_np(data_target_tensor.reshape(-1, 1), prediction.reshape(-1, 1), 0)
+        else:
             mae = mean_absolute_error(data_target_tensor.reshape(-1, 1), prediction.reshape(-1, 1))
             rmse = mean_squared_error(data_target_tensor.reshape(-1, 1), prediction.reshape(-1, 1)) ** 0.5
-            mape = masked_mape_np(data_target_tensor.reshape(-1, 1), prediction.reshape(-1, 1), 0)
+            wmape = masked_wmape_np(data_target_tensor.reshape(-1, 1), prediction.reshape(-1, 1), 0)
+
+        # Print results
         print('all MAE: %.2f' % (mae))
         print('all RMSE: %.2f' % (rmse))
-        print('all MAPE: %.2f' % (mape))
-        excel_list.extend([mae, rmse, mape])
-        print(excel_list)
+        print('all WMAPE: %.4f' % (wmape))
+        
+        output_filename = os.path.join(params_path, 'output_epoch_%s_%s' % (global_step, type))
+        np.savez(output_filename, input=input_all, prediction=prediction, data_target_tensor=data_target_tensor)
+
+        # Daily performance evaluation (last 15 days)
+        sensor_id=222
+        samples_per_day = 288  # 5-minute intervals (24 * 12)
+        num_days = 15  # Last 15 days
+        start_index = max(0, data_target_tensor.shape[0] - num_days * samples_per_day)
+
+        daily_metrics = []
+        minutes_in_day = np.arange(0, 24*60, 5)  # 5-minute intervals
+        time_points = (minutes_in_day) / 60  # Convert to hours
+        time_ticks = np.arange(0, 24, 2)
+        time_labels = [f'{int(h):02d}:00' for h in time_ticks]
+
+        for day in range(num_days):
+            day_start = start_index + day * samples_per_day
+            day_end = day_start + samples_per_day
+            day_true = np.mean(data_target_tensor[day_start:day_end, sensor_id, :].reshape(samples_per_day, -1), axis=1)
+            day_pred = np.mean(prediction[day_start:day_end, sensor_id, :].reshape(samples_per_day, -1), axis=1)
 
 
+            if metric_method == 'mask':
+                day_mae = masked_mae_test(day_true, day_pred, 0.0)
+                day_wmape = masked_wmape_np(day_true, day_pred, 0)
+            else:
+                day_mae = mean_absolute_error(day_true, day_pred)
+                day_wmape = np.sum(np.abs(day_true - day_pred)) / np.sum(day_true) * 100
+
+            # Find peak time
+            peak_index = min(np.argmax(day_true), len(time_points) - 1)
+            peak_time = time_points[peak_index]
+
+            # ±1 hour around peak time
+            samples_per_hour = 12
+            start_idx = max(0, peak_index - samples_per_hour)
+            end_idx = min(len(day_true), peak_index + samples_per_hour + 1)
+
+            peak_predictions = day_pred[start_idx:end_idx]
+            peak_actuals = day_true[start_idx:end_idx]
+            peak_mae = np.mean(np.abs(peak_predictions - peak_actuals))
+            peak_wmape = (np.sum(np.abs(peak_predictions - peak_actuals)) / (np.sum(peak_actuals) + 1e-10)) * 100
+
+            plt.figure(figsize=(15, 6))
+            plt.plot(time_points, day_true, 'b-', label='Ground Truth', linewidth=2, alpha=0.7)
+            plt.plot(time_points, day_pred, 'r--', label='Prediction', linewidth=2, alpha=0.7)
+            plt.axvline(peak_time, color='green', linestyle='--', label='Peak Time', alpha=0.8)
+            plt.axvspan(time_points[start_idx], time_points[end_idx-1], color='yellow', alpha=0.2)
+
+            plt.text(peak_time, plt.ylim()[0] + (plt.ylim()[1] - plt.ylim()[0]) * 0.05,
+                     f'±1h MAE: {peak_mae:.2f}\n±1h WMAPE: {peak_wmape:.2f}%',
+                     color='black', fontsize=10, ha='center', bbox=dict(facecolor='white', alpha=0.8))
+
+            plt.title(f'Day {day+1} Prediction (Node {sensor_id})', fontsize=14)
+            plt.xlabel('Time (KST)', fontsize=12)
+            plt.ylabel('Crowd Count', fontsize=12)
+            plt.legend(fontsize=12)
+            plt.grid(True, linestyle='--', alpha=0.7)
+            plt.xticks(time_ticks, time_labels)
+            plt.savefig(os.path.join(params_path, f'{sensor_id}_prediction_day_{day+1}_epoch_{global_step}.png'), dpi=300, bbox_inches='tight')
+            plt.close()
+            
+
+            plt.tight_layout()
+            print(f'Day {day+1} - MAE: {day_mae:.2f}, WMAPE: {day_wmape:.2f}%')
+            print(f'Peak Time: {int(peak_time):02d}:{int((peak_time % 1) * 60):02d}')
+            print(f'±1 Hour Around Peak MAE: {peak_mae:.2f}, WMAPE: {peak_wmape:.2f}%')
+            
+            daily_metrics.append([day_mae, day_wmape, peak_mae, peak_wmape])
+
+        daily_metrics = np.array(daily_metrics)
+        np.savez(os.path.join(params_path, f'daily_metrics_epoch_{global_step}.npz'), daily_metrics=daily_metrics)
+        print("Daily metrics saved.")
+    

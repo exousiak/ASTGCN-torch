@@ -16,7 +16,34 @@ def masked_mape_np(y_true, y_pred, null_val=np.nan):
         mape = np.nan_to_num(mask * mape)
         return np.mean(mape)
 
-
+def masked_wmape_np(y_true, y_pred, null_val=np.nan):
+    """
+    Weighted Mean Absolute Percentage Error (WMAPE)
+    
+    계산식:
+        WMAPE = sum(|y_pred - y_true|) / sum(|y_true|)
+    
+    :param y_true: 실제 값 (numpy array)
+    :param y_pred: 예측 값 (numpy array)
+    :param null_val: 무시할 값 (기본값: np.nan)
+    :return: wmape 값 (scalar)
+    """
+    with np.errstate(divide='ignore', invalid='ignore'):
+        # null_val 처리를 위한 mask 생성
+        if np.isnan(null_val):
+            mask = ~np.isnan(y_true)
+        else:
+            mask = np.not_equal(y_true, null_val)
+        mask = mask.astype('float32')
+        
+        # 절대 오차 계산 (유효한 값에 대해서만)
+        abs_error = np.abs(y_pred - y_true).astype('float32') * mask
+        # 실제값의 절대값 (유효한 값에 대해서만)
+        abs_y_true = np.abs(y_true).astype('float32') * mask
+        
+        # 분모가 0이 되는 경우를 방지하기 위해 작은 상수를 추가합니다.
+        wmape = np.sum(abs_error) / (np.sum(abs_y_true) + 1e-8)
+        return wmape
 
 
 def masked_mse(preds, labels, null_val=np.nan):

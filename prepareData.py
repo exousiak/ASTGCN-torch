@@ -179,10 +179,14 @@ def read_and_generate_dataset(graph_signal_matrix_filename,
     train_target = training_set[-2]  # (B,N,T)
     val_target = validation_set[-2]
     test_target = testing_set[-2]
-
+    
     train_timestamp = training_set[-1]  # (B,1)
     val_timestamp = validation_set[-1]
     test_timestamp = testing_set[-1]
+    
+    print('test timestamp:', test_timestamp.shape)
+    print("테스트셋 타임스탬프 예제:", test_timestamp[:10])  # 앞쪽 일부 timestamp 확인
+    print("테스트셋 마지막 타임스탬프:", test_timestamp[-10:])  # 마지막 timestamp 확인 
 
     (stats, train_x_norm, val_x_norm, test_x_norm) = normalization(train_x, val_x, test_x)
 
@@ -227,15 +231,15 @@ def read_and_generate_dataset(graph_signal_matrix_filename,
         dirpath = os.path.dirname(graph_signal_matrix_filename)
         filename = os.path.join(dirpath, file + '_r' + str(num_of_hours) + '_d' + str(num_of_days) + '_w' + str(num_of_weeks)) + '_astcgn'
         print('save file:', filename)
-        np.savez_compressed(filename,
-                            train_x=all_data['train']['x'], train_target=all_data['train']['target'],
-                            train_timestamp=all_data['train']['timestamp'],
-                            val_x=all_data['val']['x'], val_target=all_data['val']['target'],
-                            val_timestamp=all_data['val']['timestamp'],
-                            test_x=all_data['test']['x'], test_target=all_data['test']['target'],
-                            test_timestamp=all_data['test']['timestamp'],
-                            mean=all_data['stats']['_mean'], std=all_data['stats']['_std']
-                            )
+        np.savez(filename,
+         train_x=all_data['train']['x'], train_target=all_data['train']['target'],
+         train_timestamp=all_data['train']['timestamp'],
+         val_x=all_data['val']['x'], val_target=all_data['val']['target'],
+         val_timestamp=all_data['val']['timestamp'],
+         test_x=all_data['test']['x'], test_target=all_data['test']['target'],
+         test_timestamp=all_data['test']['timestamp'],
+         mean=all_data['stats']['_mean'], std=all_data['stats']['_std'])
+
     return all_data
 
 
